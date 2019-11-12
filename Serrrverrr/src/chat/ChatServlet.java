@@ -1,6 +1,5 @@
 package chat;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
@@ -23,37 +22,36 @@ public class ChatServlet extends HttpServlet {
 	/**
 	 * @see HttpServlet#HttpServlet()
 	 */
-	public ChatServlet() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
 
 	@Override
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-		chatting ch;
-		PhotoServer ps;
-		try {
-			executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-			ch = chatting.getInstance();
-			ps = PhotoServer.getInstance();
-			ch.setExecutorService(executorService);
-			ps.setExecutorService(executorService);
-			ch.setConnections(connections);
-			ps.setConnections(connections);
-			ch.startServer();
-			ps.photoServerStrart();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		ch = chatting.getInstance();
+		ps = PhotoServer.getInstance();
+		ch.setExecutorService(executorService);
+		ps.setExecutorService(executorService);
+		ch.setConnections(connections);
+		ps.setConnections(connections);
+		ch.startServer();
+		ps.photoServerStrart();
 
 	}
 
 	@Override
 	public void destroy() {
-		ps.StopPhotoServer();
-		ch.stopServer();
+		System.out.println("종료할것");
+		try {
+			ps.StopPhotoServer();
+			ch.stopServer();
+			if (executorService != null) {
+				executorService.shutdown();
+			}
+			System.out.println(executorService);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 	}
 
 }

@@ -6,6 +6,7 @@ package chat;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -17,36 +18,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-/*class UploadServer {
-	public static void main(String[] args) {
-		try {
-			ServerSocket ss = new ServerSocket(7777);
-			System.out.println("Server ready..");
-			while (true) {
-				Socket s = ss.accept();
-				System.out.println("접속 성공");
-				System.out.println(s.getInetAddress());// Ip address
-				ServerThread st = new ServerThread(s);
-				st.start();
-			}
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
-		}
-	}
-}// end of class
-*/
 public class PhotoServer {
 	ExecutorService executorService;
 	ServerSocket serverSocket;
 	List<AbsClient> connections;
+	private static boolean isRun = true;
+
 	private static final PhotoServer ps = new PhotoServer();
 
-	/**
-	 * 
-	 */
-	/**
-	 * 
-	 */
 	private PhotoServer() {
 	}
 
@@ -81,8 +60,8 @@ public class PhotoServer {
 		Runnable runnable = new Runnable() {
 			@Override
 			public void run() {
-
-				while (true) {
+//
+				while (isRun) {
 					try {
 						Socket socket = serverSocket.accept();
 						String message = "[연결 수락: " + socket.getRemoteSocketAddress() + ": "
@@ -105,7 +84,9 @@ public class PhotoServer {
 	}
 
 	void StopPhotoServer() {
+
 		try {
+			isRun = false;
 			Iterator<AbsClient> iterator = connections.iterator();
 			while (iterator.hasNext()) {
 				AbsClient ac = iterator.next();
@@ -143,8 +124,7 @@ public class PhotoServer {
 			}
 			try {
 				// client단에서 전송된 file내용 read 계열 stream
-				String url = this.getClass().getResource("").getPath();
-				url = url.substring(1, url.indexOf(".metadata")) + "Serrrverrr/photo/";
+
 				BufferedInputStream up = new BufferedInputStream(socket.getInputStream());
 				DataInputStream fromClient = new DataInputStream(up);
 
@@ -156,7 +136,12 @@ public class PhotoServer {
 				System.out.println(filename + "\t을 받습니다.");
 
 				// client단에서 전송되는 file 내용을 server단에 생성시킨 file에 write할수 있는 stream
-				FileOutputStream toFile = new FileOutputStream(url + filename);
+				File newfile = new File("/photo");
+				if (!newfile.exists()) {
+					newfile.mkdir();
+				}
+				System.out.println(newfile.getCanonicalPath() + "/" + filename);
+				FileOutputStream toFile = new FileOutputStream(newfile.getCanonicalPath() + "/" + filename);
 				BufferedOutputStream outFile = new BufferedOutputStream(toFile);
 				System.out.println((filename + " " + filesize));
 				byte[] bb = new byte[filesize];

@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 
 public class chatting {
 	private static final long serialVersionUID = 1L;
-
+	private static boolean isRun = true;
 	ExecutorService executorService;
 
 	/**
@@ -40,7 +40,7 @@ public class chatting {
 	private chatting() {
 	}
 
-	public static chatting getInstance() throws IOException {
+	public static chatting getInstance() {
 		return CHAT_INS;
 	}
 
@@ -67,7 +67,7 @@ public class chatting {
 			@Override
 			public void run() {
 
-				while (true) {
+				while (isRun) {
 					try {
 						Socket socket = serverSocket.accept();
 						String message = "[연결 수락: " + socket.getRemoteSocketAddress() + ": "
@@ -92,6 +92,7 @@ public class chatting {
 
 	void stopServer() {
 		try {
+			isRun = false;
 			Iterator<AbsClient> iterator = connections.iterator();
 			while (iterator.hasNext()) {
 				AbsClient ac = iterator.next();
@@ -105,10 +106,6 @@ public class chatting {
 			if (serverSocket != null && !serverSocket.isClosed()) {
 				serverSocket.close();
 			}
-			if (executorService != null && !executorService.isShutdown()) {
-				executorService.shutdown();
-			}
-
 		} catch (Exception e) {
 		}
 	}
@@ -127,7 +124,7 @@ public class chatting {
 				@Override
 				public void run() {
 					try {
-						while (true) {
+						while (isRun) {
 							byte[] byteArr = new byte[1024];
 							InputStream inputStream = socket.getInputStream();
 
