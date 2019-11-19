@@ -112,6 +112,7 @@ public class chatting {
 
 	class Client implements AbsClient {
 		Socket socket;
+		private String cname = null;
 
 		Client(Socket socket) {
 			this.socket = socket;
@@ -140,7 +141,9 @@ public class chatting {
 									+ Thread.currentThread().getName() + "]";
 
 							String data = new String(byteArr, 0, readByteCount, "UTF-8");
-							data += " /" + socket.getRemoteSocketAddress();
+							if (cname == null) {
+								cname = data.split(":")[0];
+							}
 							System.out.println(data);
 							for (AbsClient client : connections) {
 								client.send(data);

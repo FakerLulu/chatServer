@@ -6,7 +6,9 @@ package chat;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -129,34 +131,85 @@ public class PhotoServer {
 				DataInputStream fromClient = new DataInputStream(up);
 
 				// 전송된 file명 reading
-				System.out.println("파일명 받기 대기중...");
-				String filename = fromClient.readUTF();
-				int filesize = Integer.parseInt(fromClient.readUTF());
 
-				System.out.println(filename + "\t을 받습니다.");
+				String mode = fromClient.readUTF();// 사진 송,수신 모드 받음
+				if (mode.equals("down")) { // 서버 -> 클라이언트 사진 전송
+					String filename = fromClient.readUTF();
+					File file = new File("/photo/" + filename);// c:photo 폴더에 사진이 없을때
+					if (!file.exists()) {
+						System.out.println("File not Exist.");
+						fromClient.close();
+						up.close();
+						socket.close();
+						return;
+					}
 
-				// client단에서 전송되는 file 내용을 server단에 생성시킨 file에 write할수 있는 stream
-				File newfile = new File("/photo");
-				if (!newfile.exists()) {
-					newfile.mkdir();
+					BufferedOutputStream fromServer = new BufferedOutputStream(socket.getOutputStream());
+					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+					dos.writeUTF(filename);
+					dos.writeUTF("" + file.length()); // 파일 이름과 길이를 전송
+
+					OutputStream outputStream = socket.getOutputStream();
+
+					FileInputStream fileInputStream = new FileInputStream(file);
+					BufferedInputStream bis = new BufferedInputStream(fileInputStream);
+
+					byte[] dataBuff = new byte[(int) file.length()];
+					int length = fileInputStream.read(dataBuff);
+					while (length != -1) {
+						outputStream.write(dataBuff, 0, length);
+						length = fileInputStream.read(dataBuff);
+					}
+					System.out.println("전송 성공");
+
+					byte[] buf = new byte[4096]; // buf 생성합니다.
+					int theByte = 0;
+					while ((theByte = bis.read(buf)) != -1) // BufferedInputStream으로 읽어서 보냄
+					{
+						fromServer.write(buf, 0, theByte);
+					}
+
+					fromServer.flush();
+					fromServer.close();
+					bis.close();
+					fileInputStream.close();
+					socket.close();
+
+				} else { // 클라이언트 -> 서버 사진 전송
+					System.out.println("파일명 받기 대기중...");
+					String clientName = fromClient.readUTF();
+					String filename = fromClient.readUTF();
+					int filesize = Integer.parseInt(fromClient.readUTF());
+
+					System.out.println(filename + "\t을 받습니다.");
+
+					// client단에서 전송되는 file 내용을 server단에 생성시킨 file에 write할수 있는 stream
+					File newfile = new File("/photo");
+					if (!newfile.exists()) {
+						newfile.mkdir();
+					}
+					System.out.println(newfile.getCanonicalPath() + "/" + filename);
+					FileOutputStream toFile = new FileOutputStream(newfile.getCanonicalPath() + "/" + filename);
+					BufferedOutputStream outFile = new BufferedOutputStream(toFile);
+					System.out.println((filename + " " + filesize));
+					byte[] bb = new byte[filesize];
+					int ch = 0;
+					while ((ch = up.read()) != -1) {
+						outFile.write(ch);
+					}
+
+					for (AbsClient client : connections) {
+						client.send(clientName + "님이  " + filename + " 업로드");
+					}
+					System.out.println(filename + " 수신완료");
+					outFile.flush();
+					outFile.close();
 				}
-				System.out.println(newfile.getCanonicalPath() + "/" + filename);
-				FileOutputStream toFile = new FileOutputStream(newfile.getCanonicalPath() + "/" + filename);
-				BufferedOutputStream outFile = new BufferedOutputStream(toFile);
-				System.out.println((filename + " " + filesize));
-				byte[] bb = new byte[filesize];
-				int ch = 0;
-				while ((ch = up.read()) != -1) {
-					outFile.write(ch);
-				}
-				outFile.flush();
-				outFile.close();
+
 				fromClient.close();
-				for (AbsClient client : connections) {
-					client.send(socket.getRemoteSocketAddress() + "님이  " + filename + " 업로드");
-				}
-				System.out.println(filename + " 수신완료");
-			} catch (FileNotFoundException fnfe) {
+			} catch (
+
+			FileNotFoundException fnfe) {
 				fnfe.printStackTrace();
 			} catch (IOException ioe) {
 				ioe.printStackTrace();
@@ -167,28 +220,7 @@ public class PhotoServer {
 		}
 
 		@Override
-		public void send(String data) {
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-					try {
-						byte[] byteArr = data.getBytes("UTF-8");
-						OutputStream outputStream = socket.getOutputStream();
-						outputStream.write(byteArr);
-						outputStream.flush();
-					} catch (Exception e) {
-						try {
-							String message = "[클라이언트 통신 안됨: " + socket.getRemoteSocketAddress() + ": "
-									+ Thread.currentThread().getName() + "]";
-							connections.remove(Client.this);
-							System.out.println(message);
-							socket.close();
-						} catch (IOException e2) {
-						}
-					}
-				}
-			};
-			executorService.submit(runnable);
+		public void send(String data) { // 사진서버에서는 아무것도 하지 않음
 		}
 	}
 

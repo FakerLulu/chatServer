@@ -26,7 +26,7 @@ public class ChatServlet extends HttpServlet {
 	@Override
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-		executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		executorService = Executors.newCachedThreadPool();
 		ch = chatting.getInstance();
 		ps = PhotoServer.getInstance();
 		ch.setExecutorService(executorService);
